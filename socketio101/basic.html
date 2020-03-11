@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.dev.js"></script>
+    <script>
+        const socket = io('http://localhost:8000');
+        console.log(socket);
+
+        socket.on('connect', (data) => {
+            socket.on('welcome', msg => {
+                console.log(msg);
+            });
+            socket.emit('message', {data: 'I am excited to connect'});
+        });
+
+    </script>
+    <title>Document</title>
+</head>
+<body>
+
+</body>
+</html>
