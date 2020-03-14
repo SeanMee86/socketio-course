@@ -22,7 +22,10 @@ io.of('/').on('connection', socket => {
 });
 
 namespaces.forEach(namespace => {
-    io.of(namespace.endpoint).on('connection', socket => {
-        console.log(`${socket.id} has joined ${namespace.endpoint}`)
+    io.of(namespace.endpoint).on('connection', nsSocket => {
+        console.log(`${nsSocket.id} has joined ${namespace.endpoint}`)
+        // a socket has connected to one of our chat group namespaces.
+        //send that ns group info back
+        nsSocket.emit('nsRoomLoad', namespace.rooms)
     })
 });
