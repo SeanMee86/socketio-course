@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const socketio = require('socket.io');
 let namespaces = require('./data/namespaces');
-// console.log(namespaces[0]);
 app.use(express.static(__dirname + '/public'));
 const expressServer = app.listen(9000, console.log(`listening on port 9000`));
 const io = socketio(expressServer);
@@ -15,7 +14,6 @@ io.of('/').on('connection', socket => {
             endpoint: ns.endpoint
         }
     });
-    // console.log(nsData);
     // Send the nsData back to the client. We need to use socket, NOT io, because we want it to
     // go to just this client.
     socket.emit('nsList', nsData);
@@ -23,9 +21,56 @@ io.of('/').on('connection', socket => {
 
 namespaces.forEach(namespace => {
     io.of(namespace.endpoint).on('connection', nsSocket => {
-        console.log(`${nsSocket.id} has joined ${namespace.endpoint}`)
         // a socket has connected to one of our chat group namespaces.
         //send that ns group info back
-        nsSocket.emit('nsRoomLoad', namespace.rooms)
+        nsSocket.emit('nsRoomLoad', namespace.rooms);
+
+        nsSocket.on('joinRoom', (roomToJoin, numberOfUsersCallBack) => {
+
+            /***** Restrict by number of clients example *****/
+            // io.of('/wiki').in(roomToJoin).clients((err, clients) => {
+            //     if (clients.length < 2) {
+            //         nsSocket.join(roomToJoin);
+            //         console.log(`joined Room: ${roomToJoin}`);
+            //     } else {
+            //         console.log('room is full')
+            //     }
+            //     numberOfUsersCallBack(clients.length);
+            // });
+
+            //deal with history once we have it
+            nsSocket.join(roomToJoin);
+            io.of('/wiki').in(roomToJoin).clients((err, clients) => {
+                numberOfUsersCallBack(clients.length);
+            });
+            const nsRoom = namespace.rooms.find(room => {
+                return room.roomTitle === roomToJoin
+            });
+            nsSocket.emit('historyCatchUp', nsRoom.history);
+            io.of('/wiki').in(roomToJoin).clients((err, clients) => {
+                console.log(clients.length);
+                io.of('/wiki').in(roomToJoin).emit('updateMembers', clients.length);
+            })
+        });
+
+        nsSocket.on('newMessageToServer', msg => {
+            console.log(msg);
+            const fullMsg = {
+                text: msg.text,
+                time: Date.now(),
+                username: "rbunch",
+                avatar: 'https://via.placeholder.com/30'
+            };
+            // console.log(msg);
+            // console.log(nsSocket.rooms);
+
+            // the user will be in the 2nd room in the object list
+            // this is because the socket always joins its own room on connection
+            // get the keys
+            const roomTitle = Object.keys(nsSocket.rooms)[1];
+            const nsRoom = namespace.rooms.find(room => room.roomTitle === roomTitle);
+            nsRoom.addMessage(fullMsg);
+            io.of('/wiki').to(roomTitle).emit('messageToClients', fullMsg)
+        })
     })
 });
