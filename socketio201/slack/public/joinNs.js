@@ -1,4 +1,10 @@
 function joinNs(endpoint){
+    if(nsSocket){
+        //check to see if nsSocket is a socket
+        nsSocket.close();
+        //remove event listener before it's added again
+        document.querySelector('#user-input').removeEventListener('submit', formSubmission)
+    }
     nsSocket = io(`http://localhost:9000${endpoint}`);
     nsSocket.on('nsRoomLoad', nsRooms => {
         // console.log(nsRooms);
@@ -12,7 +18,7 @@ function joinNs(endpoint){
         let roomNodes = Array.from(document.getElementsByClassName('room'));
         roomNodes.forEach(el => {
             el.addEventListener('click', (e) => {
-                console.log(`Someone clicked on ${e.target.innerText}`);
+                joinRoom(e.target.innerText);
             })
         });
         const topRoom = document.querySelector('.room');
@@ -24,13 +30,15 @@ function joinNs(endpoint){
         const newMsg = buildHtml(msg);
         document.querySelector('#messages').innerHTML += newMsg
     });
-    document.querySelector('.message-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const messageField = document.querySelector('#user-message');
-        const newMessage = messageField.value;
-        nsSocket.emit('newMessageToServer', {text: newMessage});
-        // messageField.value = '';
-    });
+    document.querySelector('.message-form').addEventListener('submit', formSubmission);
+}
+
+const formSubmission = (e) => {
+    e.preventDefault();
+    const messageField = document.querySelector('#user-message');
+    const newMessage = messageField.value;
+    nsSocket.emit('newMessageToServer', {text: newMessage});
+    // messageField.value = '';
 }
 
 const buildHtml = (msg) => {
